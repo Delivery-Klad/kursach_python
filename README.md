@@ -1,2 +1,2 @@
-# Курсовая работа на языке python 3.7, с использованием библиотеки SQLite3
+# Курсовая работа на языке python 3.7, с использованием библиотеки SQLite3 и FastAPI
 ![alt text](https://github.com/Kladmen228/kurs_work-PP/blob/master/images/kurs.png)
