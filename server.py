@@ -1,10 +1,10 @@
 from datetime import datetime
 
-from fastapi import FastAPI, Cookie, Response, Request, Depends
+from fastapi import FastAPI, Request, Depends
 from fastapi_jwt_auth import AuthJWT
 from fastapi_jwt_auth.exceptions import AuthJWTException
-from fastapi.responses import RedirectResponse, FileResponse, HTMLResponse, JSONResponse
-from typing import Optional, List
+from fastapi.responses import JSONResponse
+from typing import List
 from pydantic import BaseModel
 from bcrypt import hashpw, gensalt, checkpw
 import sqlite3
@@ -322,8 +322,39 @@ async def sort2(column: str, user_id: str, table: int, Authorize: AuthJWT = Depe
     return {"res": cursor.fetchall()}
 
 
+@app.get("/download/{user_id}/{table}")
+async def download(user_id: str, table: int, Authorize: AuthJWT = Depends()):
+    Authorize.jwt_refresh_token_required()
+    permissions = int(Authorize.get_jwt_subject())
+    connect = sqlite3.connect(db_name)
+    cursor = connect.cursor()
+    result = []
+    if table == 0:
+        if permissions == 1:
+            cursor.execute(f"SELECT ID,Name,Author,Year,takerID FROM NotInLibrary ORDER BY ID")
+            for i in cursor.fetchall():
+                result.append({"id": i[0], "name": i[1], "author": i[2], "year": i[3], "take_id": i[4]})
+        else:
+            return {"res": False}
+    elif table == 1:
+        if permissions == 1:
+            cursor.execute(f"SELECT ID,Name,Author,Year,middle_time FROM Library ORDER BY ID")
+            for i in cursor.fetchall():
+                result.append({"id": i[0], "name": i[1], "author": i[2], "year": i[3], "middle_time": i[4]})
+        else:
+            return {"res": False}
+    else:
+        if permissions == 1:
+            cursor.execute(f"SELECT ID,Name,Author,Year,frequency FROM Library ORDER BY ID")
+            for i in cursor.fetchall():
+                result.append({"id": i[0], "name": i[1], "author": i[2], "year": i[3], "frequency": i[4]})
+        else:
+            return {"res": False}
+    return result
+
+
 @app.get("/user_books/{user_id}")
-async def get_user_books(user_id: int, Authorize: AuthJWT = Depends()):
+async def get_user_books(user_id: str, Authorize: AuthJWT = Depends()):
     Authorize.jwt_refresh_token_required()
     permissions = int(Authorize.get_jwt_subject())
     connect = sqlite3.connect(db_name)
@@ -332,4 +363,5 @@ async def get_user_books(user_id: int, Authorize: AuthJWT = Depends()):
         cursor.execute("SELECT ID, Name, Author, Year, takeID FROM NotInLibrary ORDER BY ID")
     else:
         cursor.execute(f"SELECT ID, Name, Author, Year, takeID FROM NotInLibrary WHERE takerID='{user_id}' ORDER BY ID")
-    return cursor.fetchall()
+    res = cursor.fetchall()
+    return res

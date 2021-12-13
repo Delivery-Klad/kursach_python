@@ -3,8 +3,6 @@ from tkinter import messagebox
 from tkinter import ttk
 from tkinter import *
 import tkinter as tk
-import database
-
 
 server_url = "http://localhost:8000/"
 token = ""
@@ -14,15 +12,15 @@ who = 0
 currentUserID = 0
 currentTable = 0
 root = tk.Tk()
-root.title("Библиотека")
-root.geometry("1750x500")
+root.title("Читальный зал")
+root.geometry("1600x500")
 root.resizable(False, False)
 
 # region tables
 frame = ttk.Treeview(root)
-frame.place(relx=0.15, rely=0.05, relwidth=0.33, relheight=0.89)
+frame.place(relx=0.15, rely=0.05, relwidth=0.36, relheight=0.89)
 frame2 = ttk.Treeview(root)
-frame2.place(relx=0.65, rely=0.05, relwidth=0.33, relheight=0.89)
+frame2.place(relx=0.62, rely=0.05, relwidth=0.36, relheight=0.89)
 frame["columns"] = ("ID", "Название", "Автор", "Год издания", "Кол-во")
 frame.column("#0", width=0, stretch=tk.NO)
 frame.column("ID", width=40, stretch=tk.NO)
@@ -74,7 +72,7 @@ def fill_on_hand_table():
             button_sortCount2.configure(text='Идентификатору')
             frame2.delete(*frame2.get_children())
             books = requests.get(f"{server_url}user_books/{currentUserID}",
-                                 headers={"Authorization": f"Bearer {token}"}).json()["res"]
+                                 headers={"Authorization": f"Bearer {token}"}).json()
             for i in books:
                 frame2.insert('', 'end', values=i)
     except Exception as e:
@@ -147,9 +145,9 @@ def add_book():
             if not data[4].isdigit():
                 messagebox.showerror("TypeError", "Кол-во экземпляров должно быть указано числом")
                 return
-            response = requests.post(f"{server_url}book", json={"data": data}).json()
+            response = requests.post(f"{server_url}book", json={"data": data})
             if response.status_code == 200:
-                data[0] = response["res"]
+                data[0] = response.json()["res"]
             frame.insert('', 'end', values=data)
         else:
             messagebox.showerror("Ошибка ввода", "Все поля должны быть заполнены")
@@ -179,7 +177,7 @@ def replace_book(table):
             book_id = book[2][1:-1]
             response = requests.get(f"{server_url}take?book_id={book_id}&user={currentUserID}").json()
             if response["res"] > 1:
-                frame.item(i, values=requests.get(f"{server_url}book/{book_id}").json()["res"])
+                frame.item(i, values=requests.get(f"{server_url}book/{book_id}").json())
                 frame2.insert('', 'end', values=requests.get(f"{server_url}on_hand?book_id={book_id}").json()["res"])
             else:
                 frame2.insert('', 'end', values=requests.get(f"{server_url}on_hand?book_id={book_id}").json()["res"])
@@ -257,6 +255,7 @@ def login():
                 button_plusTwenty.configure(state='normal')
                 button_frequency.configure(state='normal')
                 button_onHand.configure(state='normal')
+                button_download.configure(state='normal')
             else:
                 button_take.configure(state='normal')
                 button_give.configure(state='normal')
@@ -287,6 +286,15 @@ def login():
     button_exit.configure(state='normal')
     button_enter.configure(state='disabled')
     button_reg.configure(state='disabled')
+
+
+def download():
+    from json import dump
+    books = requests.get(f"{server_url}download/{currentUserID}/{currentTable}",
+                         headers={"Authorization": f"Bearer {token}"}).json()
+    print(books)
+    with open("otchet.json", "w") as file:
+        dump(books, file, indent=2)
 
 
 def reg():
@@ -320,24 +328,28 @@ l_frame = LabelFrame(root, relief=FLAT)
 l_frame.place(relx=0.025, rely=0.85, relwidth=0.12, relheight=0.14)
 
 button_add = tk.Button(root, text="Добавить", bg='#BDBDBD', command=lambda: add_book(), state='disabled')
-button_add.place(relx=0.045, rely=0.40, relwidth=0.1, relheight=0.05)
+button_add.place(relx=0.045, rely=0.34, relwidth=0.1, relheight=0.05)
 button_del = tk.Button(root, text="Удалить", bg='#BDBDBD', command=lambda: del_book(), state='disabled')
-button_del.place(relx=0.045, rely=0.46, relwidth=0.1, relheight=0.05)
+button_del.place(relx=0.045, rely=0.40, relwidth=0.1, relheight=0.05)
 button_give = tk.Button(root, text="->Взять книгу->", bg='#BDBDBD', command=lambda: replace_book("Library"),
                         state='disabled')
-button_give.place(relx=0.52, rely=0.05, relwidth=0.1, relheight=0.05)
+button_give.place(relx=0.515, rely=0.05, relwidth=0.1, relheight=0.05)
 button_take = tk.Button(root, text="<-Вернуть книгу<-", bg='#BDBDBD', command=lambda: replace_book("NotInLibrary"),
                         state='disabled')
-button_take.place(relx=0.52, rely=0.11, relwidth=0.1, relheight=0.05)
+button_take.place(relx=0.515, rely=0.11, relwidth=0.1, relheight=0.05)
 button_middle = tk.Button(root, text="Среднее время на руках", bg='#BDBDBD', command=lambda: fill_middle_time(),
                           state='disabled')
-button_middle.place(relx=0.52, rely=0.32, relwidth=0.1, relheight=0.05)
+button_middle.place(relx=0.515, rely=0.27, relwidth=0.1, relheight=0.05)
 button_frequency = tk.Button(root, text="Частота выдачи", bg='#BDBDBD', command=lambda: fill_frequency(),
                              state='disabled')
-button_frequency.place(relx=0.52, rely=0.38, relwidth=0.1, relheight=0.05)
+button_frequency.place(relx=0.515, rely=0.33, relwidth=0.1, relheight=0.05)
 button_onHand = tk.Button(root, text="Список книг на руках", bg='#BDBDBD', command=lambda: fill_on_hand_table(),
                           state='disabled')
-button_onHand.place(relx=0.52, rely=0.44, relwidth=0.1, relheight=0.05)
+button_onHand.place(relx=0.515, rely=0.39, relwidth=0.1, relheight=0.05)
+button_download = tk.Button(root, text="Скачать отчет", bg='#BDBDBD', command=lambda: download(),
+                            state='disabled')
+button_download.place(relx=0.515, rely=0.45, relwidth=0.1, relheight=0.05)
+
 button_sortID = tk.Button(root, text="ID", bg='#BDBDBD', command=lambda: sort_frame("ID"), state='disabled')
 button_sortID.place(relx=0.22, rely=0.945, relwidth=0.03, relheight=0.05)
 button_sortName = tk.Button(root, text="Названию", bg='#BDBDBD', command=lambda: sort_frame("Name"), state='disabled')
@@ -350,69 +362,65 @@ button_sortCount = tk.Button(root, text="Количеству", bg='#BDBDBD', co
                              state='disabled')
 button_sortCount.place(relx=0.42, rely=0.945, relwidth=0.05, relheight=0.05)
 button_sortID2 = tk.Button(root, text="ID", bg='#BDBDBD', command=lambda: sort_frame2("ID"), state='disabled')
-button_sortID2.place(relx=0.72, rely=0.945, relwidth=0.03, relheight=0.05)
+button_sortID2.place(relx=0.693, rely=0.945, relwidth=0.03, relheight=0.05)
 button_sortName2 = tk.Button(root, text="Названию", bg='#BDBDBD', command=lambda: sort_frame2("Name"), state='disabled')
-button_sortName2.place(relx=0.755, rely=0.945, relwidth=0.05, relheight=0.05)
+button_sortName2.place(relx=0.728, rely=0.945, relwidth=0.05, relheight=0.05)
 button_sortAuthor2 = tk.Button(root, text="Автору", bg='#BDBDBD', command=lambda: sort_frame2("Author"),
                                state='disabled')
-button_sortAuthor2.place(relx=0.81, rely=0.945, relwidth=0.05, relheight=0.05)
+button_sortAuthor2.place(relx=0.783, rely=0.945, relwidth=0.05, relheight=0.05)
 button_sortYear2 = tk.Button(root, text="Году", bg='#BDBDBD', command=lambda: sort_frame2("Year"), state='disabled')
-button_sortYear2.place(relx=0.865, rely=0.945, relwidth=0.05, relheight=0.05)
+button_sortYear2.place(relx=0.838, rely=0.945, relwidth=0.05, relheight=0.05)
 button_sortCount2 = tk.Button(root, text="Идентификатору", bg='#BDBDBD', command=lambda: sort_frame2("takeID"),
                               state='disabled')
-button_sortCount2.place(relx=0.92, rely=0.945, relwidth=0.06, relheight=0.05)
+button_sortCount2.place(relx=0.893, rely=0.945, relwidth=0.06, relheight=0.05)
 button_plusOne = tk.Button(root, text="+1", bg='#BDBDBD', command=lambda: add_count(1), state='disabled')
-button_plusOne.place(relx=0.52, rely=0.6, relwidth=0.03, relheight=0.05)
+button_plusOne.place(relx=0.515, rely=0.6, relwidth=0.03, relheight=0.05)
 button_plusTwo = tk.Button(root, text="+2", bg='#BDBDBD', command=lambda: add_count(2), state='disabled')
-button_plusTwo.place(relx=0.555, rely=0.6, relwidth=0.03, relheight=0.05)
+button_plusTwo.place(relx=0.55, rely=0.6, relwidth=0.03, relheight=0.05)
 button_plusFive = tk.Button(root, text="+5", bg='#BDBDBD', command=lambda: add_count(5), state='disabled')
-button_plusFive.place(relx=0.59, rely=0.6, relwidth=0.03, relheight=0.05)
-button_plusTen = tk.Button(root, text="+10", bg='#BDBDBD', command=lambda: add_count(10), state='disabled')
-button_plusTen.place(relx=0.52, rely=0.665, relwidth=0.03, relheight=0.05)
-button_plusFT = tk.Button(root, text="+15", bg='#BDBDBD', command=lambda: add_count(15), state='disabled')
-button_plusFT.place(relx=0.555, rely=0.665, relwidth=0.03, relheight=0.05)
-button_plusTwenty = tk.Button(root, text="+20", bg='#BDBDBD', command=lambda: add_count(20), state='disabled')
-button_plusTwenty.place(relx=0.59, rely=0.665, relwidth=0.03, relheight=0.05)
+button_plusFive.place(relx=0.585, rely=0.6, relwidth=0.03, relheight=0.05)
+button_plusTen = tk.Button(root, text="-1", bg='#BDBDBD', command=lambda: add_count(-1), state='disabled')
+button_plusTen.place(relx=0.515, rely=0.665, relwidth=0.03, relheight=0.05)
+button_plusFT = tk.Button(root, text="-2", bg='#BDBDBD', command=lambda: add_count(-2), state='disabled')
+button_plusFT.place(relx=0.55, rely=0.665, relwidth=0.03, relheight=0.05)
+button_plusTwenty = tk.Button(root, text="-5", bg='#BDBDBD', command=lambda: add_count(-5), state='disabled')
+button_plusTwenty.place(relx=0.585, rely=0.665, relwidth=0.03, relheight=0.05)
 button_refresh = tk.Button(root, text="Обновить БД", bg='#BDBDBD', command=lambda: (fill_LibTable(),
                                                                                     fill_on_hand_table()),
                            state='normal')
-button_refresh.place(relx=0.52, rely=0.8, relwidth=0.1, relheight=0.05)
+button_refresh.place(relx=0.515, rely=0.8, relwidth=0.1, relheight=0.05)
 
-entry_id = tk.Entry(root, font=12)
-entry_id.place(relx=0.045, rely=0.05, relwidth=0.1, relheight=0.05)
 entry_title = tk.Entry(root, font=12)
-entry_title.place(relx=0.045, rely=0.12, relwidth=0.1, relheight=0.05)
+entry_title.place(relx=0.045, rely=0.05, relwidth=0.1, relheight=0.05)
 entry_author = tk.Entry(root, font=12)
-entry_author.place(relx=0.045, rely=0.19, relwidth=0.1, relheight=0.05)
+entry_author.place(relx=0.045, rely=0.12, relwidth=0.1, relheight=0.05)
 entry_year = tk.Entry(root, font=12)
-entry_year.place(relx=0.045, rely=0.26, relwidth=0.1, relheight=0.05)
+entry_year.place(relx=0.045, rely=0.19, relwidth=0.1, relheight=0.05)
 entry_count = tk.Entry(root, font=12)
-entry_count.place(relx=0.045, rely=0.33, relwidth=0.1, relheight=0.05)
+entry_count.place(relx=0.045, rely=0.26, relwidth=0.1, relheight=0.05)
 
-label_id = tk.Label(root, font=12, text="Id:", fg='black')
-label_id.place(relx=0.023, rely=0.05)
 label_title = tk.Label(root, font=12, text="Назв:", fg='black')
-label_title.place(relx=0.01, rely=0.12)
+label_title.place(relx=0.01, rely=0.05)
 label_author = tk.Label(root, font=12, text="Автор:", fg='black')
-label_author.place(relx=0.005, rely=0.19)
+label_author.place(relx=0.005, rely=0.12)
 label_year = tk.Label(root, font=12, text="Год:", fg='black')
-label_year.place(relx=0.015, rely=0.26)
+label_year.place(relx=0.015, rely=0.19)
 label_count = tk.Label(root, font=12, text="Кол-во:", fg='black')
-label_count.place(relx=0.005, rely=0.33)
+label_count.place(relx=0.005, rely=0.26)
 label_sort = tk.Label(root, font=12, text="Сортировка по:", fg='black')
 label_sort.place(relx=0.148, rely=0.945)
 label_sort2 = tk.Label(root, font=12, text="Сортировка по:", fg='black')
-label_sort2.place(relx=0.647, rely=0.945)
-label_fill = tk.Label(root, font=12, text="Пополнение", fg='black')
-label_fill.place(relx=0.52, rely=0.55, relwidth=0.1, relheight=0.05)
+label_sort2.place(relx=0.62, rely=0.945)
+label_fill = tk.Label(root, font=12, text="Изменение количества", fg='black')
+label_fill.place(relx=0.514, rely=0.55, relwidth=0.106, relheight=0.05)
 label_func = tk.Label(root, font=12, text="Формирование отчетов", fg='black')
-label_func.place(relx=0.52, rely=0.27, relwidth=0.1, relheight=0.05)
+label_func.place(relx=0.513, rely=0.22, relwidth=0.106, relheight=0.05)
 
-label_func = tk.Label(root, font=12, text="     Авторизация", fg='black')
-label_func.place(relx=0.036, rely=0.67)
+label_func = tk.Label(root, font=12, text="Авторизация", fg='black')
+label_func.place(relx=0.048, rely=0.67)
 entry_userId = tk.Entry(root, font=12)
 entry_userId.place(relx=0.027, rely=0.72, relwidth=0.1, relheight=0.05)
-entry_pass = tk.Entry(root, font=12)
+entry_pass = tk.Entry(root, font=12, show="*")
 entry_pass.place(relx=0.027, rely=0.78, relwidth=0.1, relheight=0.05)
 button_enter = tk.Button(l_frame, text="Вход", bg='#BDBDBD', command=lambda: login())
 button_enter.place(relx=0, rely=-0.1, relwidth=0.41, relheight=0.5)
